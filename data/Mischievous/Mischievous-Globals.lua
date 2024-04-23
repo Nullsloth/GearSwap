@@ -106,4 +106,5 @@ bayld_items = {'Tlalpoloani','Macoquetza','Camatlatia','Icoyoca','Tlamini','Suij
 ]]
 
 
-silibs = include('SilverLibs')
+include('SilverLibs')
+include('reorganizer-lib')

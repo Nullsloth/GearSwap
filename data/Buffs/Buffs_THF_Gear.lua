@@ -1,5 +1,4 @@
 function user_job_setup()
-
     state.OffenseMode:options('Normal')
     state.HybridMode:options('DT', 'Normal')
     state.RangedMode:options('Normal')
@@ -9,6 +8,7 @@ function user_job_setup()
     state.MagicalDefenseMode:options('MDT')
     state.ResistDefenseMode:options('MEVA')
     state.Weapons:options('Aeneas', 'TH', 'Naegling', 'KajaKnuckles', 'None')
+    state.AutoZergMode:reset()
     state.ExtraMeleeMode = M { ['description'] = 'Extra Melee Mode', 'None' }
     state.AmbushMode = M(false, 'Ambush Mode')
     state.TreasureMode:options('Tag', 'Fulltime', 'None')
@@ -20,6 +20,14 @@ function user_job_setup()
     silibs.enable_premade_commands()
     silibs.enable_th()
     silibs.enable_ui()
+    silibs.enable_equip_loop()
+    silibs.enable_custom_roll_text()
+    silibs.enable_haste_info()
+    has_obi = true     -- Change if you do or don't have Hachirin-no-Obi
+    has_orpheus = true -- Change if you do or don't have Orpheus's Sash
+    silibs.enable_elemental_belt_handling(has_obi, has_orpheus)
+    silibs.enable_snapshot_auto_equip()
+
 
     autows_list = {
         ['Aeneas'] = "Rudra's Storm",
@@ -29,7 +37,8 @@ function user_job_setup()
         ['SwordThrowing'] = 'Savage Blade',
         ['Evisceration'] = 'Evisceration',
         ['ProcWeapons'] = 'Wasp Sting',
-        ['Bow'] = 'Empyreal Arrow' }
+        ['Bow'] = 'Empyreal Arrow'
+    }
 
     -- Additional local binds
     send_command('bind ^` input /ja "Flee" <me>')
@@ -48,9 +57,32 @@ function user_job_setup()
 end
 
 function init_gear_sets()
+    if item_available("Crepuscular Knife") then
+        gear.offhand_dagger = "Crepuscular Knife"
+    else
+        gear.offhand_dagger = "Gleti's Knife"
+    end
 
+    if item_available("Skulk. Earring +2") then
+        gear.empy_earring = "Skulk. Earring +2"
+    elseif item_available("Skulk. Earring +1") then
+        gear.empy_earring = "Skulk. Earring +1"
+    elseif item_available("Skulker's Earring") then
+        gear.empy_earring = "Skulker's Earring"
+    else
+        gear.empy_earring = "Telos Earring"
+    end
 
-    sets.TreasureHunter = set_combine(sets.TreasureHunterTHF, { hands = "Plunderer's Armlets +3", waist = "Chaac Belt", feet = "Skulker's Poulaines +1" })
+    if item_available("Skulker's Poulaines +3") then
+        gear.jse_empy_feet = "Skulker's Poulaines +3"
+    elseif item_available("Skulker's Poulaines +2") then
+        gear.jse_empy_feet = "Skulker's Poulaines +2"
+    else
+        gear.jse_empy_feet = "Skulker's Poulaines +1"
+    end
+
+    sets.TreasureHunter = set_combine(sets.TreasureHunterTHF,
+        { hands = "Plunderer's Armlets +3", waist = "Chaac Belt", feet = gear.jse_empy_feet })
     sets.Kiting = { feet = "Jute Boots +1" }
 
     sets.buff.Doom = set_combine(sets.buff.Doom, {})
@@ -63,10 +95,10 @@ function init_gear_sets()
     sets.Ambush = {}
 
     -- Weapons sets
-    sets.weapons.Aeneas = { main = "Aeneas", sub = "Gleti's Knife" }
+    sets.weapons.Aeneas = { main = "Aeneas", sub = gear.offhand_dagger }
     sets.weapons.TH = { main = "Aeneas", sub = "Taming Sari" }
-    sets.weapons.Naegling = { main = "Naegling", sub = "Gleti's Knife" }
-    sets.weapons.KajaKnuckles = { main = gear.thf_knuckles, sub = empty }
+    sets.weapons.Naegling = { main = "Naegling", sub = gear.offhand_dagger }
+    sets.weapons.KajaKnuckles = { main = "Karambit", sub = empty }
 
     -- Actions we want to use to tag TH.
     sets.precast.Step = sets.TreasureHunter
@@ -84,7 +116,7 @@ function init_gear_sets()
     sets.precast.JA['Conspirator'] = {}
     sets.precast.JA['Steal'] = {}
     sets.precast.JA['Mug'] = {}
-    sets.precast.JA['Despoil'] = { feet = "Skulker's Poulaines +1" }
+    sets.precast.JA['Despoil'] = { feet = gear.jse_empy_feet }
     sets.precast.JA['Perfect Dodge'] = { hands = "Plunderer's Armlets +3" }
     sets.precast.JA['Feint'] = {}
 
@@ -107,8 +139,8 @@ function init_gear_sets()
         waist = "Fotia Belt",
         left_ear = "Loquac. Earring",
         right_ear = "Etiolation Earring",
-        left_ring = "Weather. Ring +1",
-        right_ring = "Lebeche Ring",
+        left_ring = gear.weather_ring,
+        right_ring = "Medada's Ring",
         back = gear.jse_tp_back,
     }
 
@@ -116,7 +148,7 @@ function init_gear_sets()
 
     -- Weaponskill sets
     sets.precast.WS = {
-        ammo = "C. Palug Stone",
+        ammo = "Oshasha's Treatise",
         head = { name = "Nyame Helm", augments = { 'Path: B', } },
         body = { name = "Nyame Mail", augments = { 'Path: B', } },
         hands = { name = "Nyame Gauntlets", augments = { 'Path: B', } },
@@ -135,7 +167,7 @@ function init_gear_sets()
     sets.precast.WS['Aeolian Edge'].TH = set_combine(sets.precast.WS['Aeolian Edge'], sets.TreasureHunter)
 
     sets.precast.RA = {
-        head = "Taeon Chapeau", -- 10
+        head = "Taeon Chapeau",       -- 10
         feet = "Meghanada Jambeaux +2", -- 10
         waist = "Yemaya Belt",
         left_ring = "Crepuscular Ring", -- 3
@@ -181,8 +213,8 @@ function init_gear_sets()
     sets.idle = {
         ammo = gear.dt_ammo,
         head = "Malignance Chapeau",
-        body = "Malignance Tabard",
-        hands = "Malignance Gloves",
+        body = "Gleti's Cuirass",
+        hands = "Gleti's Gauntlets",
         legs = "Malignance Tights",
         feet = "Malignance Boots",
         neck = "Sanctity Necklace",
@@ -193,6 +225,13 @@ function init_gear_sets()
         right_ring = "Gelatinous Ring +1",
         back = gear.jse_tp_back,
     }
+
+    sets.idle.DT = set_combine(sets.idle, {
+        head = "Nyame Helm",
+        legs = "Nyame Flanchard",
+        feet = "Nyame Sollerets",
+        neck = "Loricate Torque +1",
+    })
 
     sets.idle.Town = set_combine(sets.idle, {
         head = "Nyame Helm",
@@ -236,48 +275,33 @@ function init_gear_sets()
         ammo = "Coiste Bodhar",
         head = "Malignance Chapeau",
         body = "Malignance Tabard",
-        hands = "Adhemar Wrist. +1",
-        legs = "Malignance Tights",
-        feet = "Malignance Boots",
-        neck = "Lissome Necklace",
-        waist = "Reiki Yotai",
-        left_ear = "Sherida Earring",
-        right_ear = "Telos Earring",
-        left_ring = "Petrov Ring",
-        right_ring = "Gere Ring",
-        back = gear.jse_tp_back,
-    }
-
-    sets.engaged.DT = {
-        ammo = gear.dt_ammo,
-        head = "Malignance Chapeau",
-        body = "Malignance Tabard",
         hands = "Malignance Gloves",
         legs = "Malignance Tights",
         feet = "Malignance Boots",
         neck = "Combatant's Torque",
         waist = "Reiki Yotai",
         left_ear = "Sherida Earring",
-        right_ear = "Telos Earring",
-        left_ring = "Defending Ring",
+        right_ear = gear.empy_earring,
+        left_ring = "Chirich Ring +1",
         right_ring = "Gere Ring",
         back = gear.jse_tp_back,
     }
 
-end
-
--- Select default macro book on initial load or subjob change.
-function select_default_macro_book()
-    -- Default macro set/book
-    if player.sub_job == 'DNC' then
-        set_macro_page(8, 5)
-    elseif player.sub_job == 'WAR' then
-        set_macro_page(7, 5)
-    elseif player.sub_job == 'NIN' then
-        set_macro_page(10, 5)
-    else
-        set_macro_page(6, 5)
-    end
+    sets.engaged.DT = {
+        ammo = gear.dt_ammo,
+        head = "Nyame Helm",
+        body = "Malignance Tabard",
+        hands = "Malignance Gloves",
+        legs = "Malignance Tights",
+        feet = "Nyame Sollerets",
+        neck = "Combatant's Torque",
+        waist = "Reiki Yotai",
+        left_ear = "Sherida Earring",
+        right_ear = gear.empy_earring,
+        left_ring = "Chirich Ring +1",
+        right_ring = "Gere Ring",
+        back = gear.jse_tp_back,
+    }
 end
 
 function extra_user_setup()

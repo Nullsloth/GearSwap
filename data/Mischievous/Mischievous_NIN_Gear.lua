@@ -1,5 +1,4 @@
 function user_job_setup()
-
     state.OffenseMode:options('Normal')
     state.HybridMode:options('DT', 'Normal')
     state.RangedMode:options('Normal')
@@ -9,7 +8,10 @@ function user_job_setup()
     state.PhysicalDefenseMode:options('PDT')
     state.MagicalDefenseMode:options('MDT')
     state.ResistDefenseMode:options('MEVA')
-    state.Weapons:options('Kikoku', 'Heishi', 'Naegling', 'Tauret', 'ProcKatana', 'ProcScythe', 'ProcDagger', 'ProcGreatKatana', 'ProcSword', 'ProcStaff', 'ProcClub', 'ProcGreatSword', 'ProcPolearm', 'None')
+    state.AutoZergMode:reset()
+    state.Weapons:options('Kikoku', 'Heishi', 'Naegling', 'Tauret',
+        'ProcKatana', 'ProcScythe', 'ProcDagger', 'ProcGreatKatana', 'ProcSword',
+        'ProcStaff', 'ProcClub', 'ProcGreatSword', 'ProcPolearm', 'None')
     state.ExtraMeleeMode = M { ['description'] = 'Extra Melee Mode', 'None' }
     silibs.enable_cancel_outranged_ws()
     silibs.enable_cancel_on_blocking_status()
@@ -19,7 +21,16 @@ function user_job_setup()
     silibs.enable_premade_commands()
     silibs.enable_th()
     silibs.enable_ui()
+    silibs.enable_equip_loop()
+    silibs.enable_custom_roll_text()
+    silibs.enable_haste_info()
+    has_obi = true     -- Change if you do or don't have Hachirin-no-Obi
+    has_orpheus = true -- Change if you do or don't have Orpheus's Sash
+    silibs.enable_elemental_belt_handling(has_obi, has_orpheus)
+    silibs.enable_snapshot_auto_equip()
+ 
 
+    autows = 'Blade: Metsu'
     autows_list = {
         ['Tizbron'] = 'Expiacion',
         ['Tizalmace'] = 'Expiacion',
@@ -30,9 +41,13 @@ function user_job_setup()
         ['Naegmace'] = 'Savage Blade'
     }
 
-    gear.jse_dex_back = { name = "Andartia's Mantle", augments = { 'DEX+20', 'Accuracy+20 Attack+20', 'Weapon skill damage +10%', 'Phys. dmg. taken-10%', } }
+
+    gear.jse_dex_back = { name = "Andartia's Mantle", augments = { 'DEX+20', 'Accuracy+20 Attack+20', 'Weapon skill damage +10%', 'DEX+10', 'Phys. dmg. taken-10%', } }
     gear.jse_da_back = { name = "Andartia's Mantle", augments = { 'DEX+20', 'Accuracy+20 Attack+20', '"Store TP"+10', 'Accuracy+10', 'Phys. dmg. taken-10%', } }
-    gear.jse_str_back = { name = "Andartia's Mantle", augments = { 'STR+20', 'Accuracy+20 Attack+20', 'Weapon skill damage +10%', 'Phys. dmg. taken-10%', } }
+    gear.jse_str_back = { name = "Andartia's Mantle", augments = { 'STR+20', 'Accuracy+20 Attack+20', 'Weapon skill damage +10%', 'STR+10', 'Phys. dmg. taken-10%', } }
+
+
+
 
     send_command('bind ^` input /ja "Innin" <me>')
     send_command('bind !` input /ja "Yonin" <me>')
@@ -47,6 +62,24 @@ function user_job_setup()
 end
 
 function init_gear_sets()
+    if item_available("Hattori Earring +2") then
+        gear.empy_earring = "Hattori Earring +2"
+    elseif item_available("Hattori Earring +1") then
+        gear.empy_earring = "Hattori Earring +1"
+    elseif item_available("Hattori Earring") then
+        gear.empy_earring = "Hattori Earring"
+    else
+        gear.empy_earring = "Crep. Earring"
+    end
+
+    if item_available("Hattori Kyahan +3") then
+        gear.jse_empy_feet = "Hattori Kyahan +3"
+    elseif item_available("Hattori Kyahan +2") then
+        gear.jse_empy_feet = "Hattori Kyahan +2"
+    else
+        gear.jse_empy_feet = "Hattori Kyahan +1"
+    end
+
 
     -- Weapons sets
     sets.weapons.Kikoku = { main = "Kikoku", sub = "Kunimitsu" }
@@ -77,7 +110,7 @@ function init_gear_sets()
         legs = { name = "Nyame Flanchard", augments = { 'Path: B', } },
         feet = { name = "Nyame Sollerets", augments = { 'Path: B', } },
         neck = { name = "Loricate Torque +1", augments = { 'Path: A', } },
-        waist = "Flume Belt +1",
+        waist = gear.dt_waist,
         left_ear = "Friomisi Earring",
         right_ear = "Suppanomimi",
         left_ring = "Petrov Ring",
@@ -111,15 +144,16 @@ function init_gear_sets()
         legs = { name = "Rawhide Trousers", augments = { 'MP+50', '"Fast Cast"+5', '"Refresh"+1', } },
         feet = { name = "Nyame Sollerets", augments = { 'Path: B', } },
         neck = "Baetyl Pendant",
-        waist = "Flume Belt +1",
+        waist = gear.dt_waist,
         left_ear = "Loquac. Earring",
         right_ear = "Etiolation Earring",
-        left_ring = "Weather. Ring +1",
-        right_ring = "Lebeche Ring",
+        left_ring = gear.weather_ring,
+        right_ring = "Medada's Ring",
         back = gear.jse_da_back,
     }
 
-    sets.precast.FC.Utsusemi = set_combine(sets.precast.FC, { neck = "Magoraga Beads", body = "Mochi. Chainmail +3", }) --feet="Hattori Kyahan +1"
+    sets.precast.FC.Utsusemi = set_combine(sets.precast.FC,
+        { neck = "Magoraga Beads", body = "Mochi. Chainmail +3", feet = gear.jse_empy_feet })
     sets.precast.FC.Shadows = set_combine(sets.precast.FC.Utsusemi, {})
 
     -- Snapshot for ranged
@@ -128,13 +162,13 @@ function init_gear_sets()
     -- Weaponskill sets
 
     sets.precast.WS = {
-        ammo = "Crepuscular Pebble",
+        ammo = "Oshasha's Treatise",
         head = "Mpaca's Cap",
         body = "Nyame Mail",
         hands = "Nyame Gauntlets",
-        legs = "Mochi. Hakama +3",
+        legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
-        neck = "Ninja Nodowa +2",
+        neck = gear.nin_jse_neck,
         waist = "Sailfi Belt +1",
         left_ear = "Lugra Earring +1",
         right_ear = { name = "Moonshade Earring", augments = { 'Accuracy+4', 'TP Bonus +250', } },
@@ -149,11 +183,11 @@ function init_gear_sets()
         body = "Adhemar Jacket +1",
         hands = "Adhemar Wrist. +1",
         legs = "Rawhide Trousers",
-        feet = "Volte Spats",
+        feet = "Hachi. Kyahan +1",
         neck = "Combatant's Torque",
         waist = "Gishdubar Sash",
         left_ear = "Infused Earring",
-        right_ear = "Dedition Earring",
+        right_ear = "Telos Earring",
         left_ring = "Defending Ring",
         right_ring = "Gelatinous Ring +1",
         back = gear.dt_moon_back,
@@ -179,17 +213,17 @@ function init_gear_sets()
     sets.precast.WS['Savage Blade'] = set_combine(sets.precast.WS, {})
 
     sets.precast.WS['Blade: Chi'] = {
-        ammo = "Crepuscular Pebble",
+        ammo = "Oshasha's Treatise",
         head = "Nyame Helm",
         body = "Nyame Mail",
         hands = "Nyame Gauntlets",
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
-        neck = { name = "Ninja Nodowa +2", augments = { 'Path: A', } },
+        neck = gear.nin_jse_neck,
         waist = "Sailfi Belt +1",
         left_ear = "Lugra Earring +1",
         right_ear = "Moonshade Earring",
-        left_ring = { name = "Gere Ring", priority = 250 },
+        left_ring = { name = "Medada's Ring", priority = 250 },
         right_ring = { name = "Beithir Ring", priority = 500 },
         back = gear.jse_str_back,
     }
@@ -221,7 +255,7 @@ function init_gear_sets()
         left_ear = "Friomisi Earring",
         right_ear = "Crep. Earring",
         left_ring = { name = "Metamor. Ring +1", augments = { 'Path: A', } },
-        right_ring = "Crepuscular Ring",
+        right_ring = "Medada's Ring",
         --back="",
     }
 
@@ -239,7 +273,7 @@ function init_gear_sets()
         left_ear = "Digni. Earring",
         right_ear = "Crep. Earring",
         left_ring = { name = "Metamor. Ring +1", augments = { 'Path: A', } },
-        right_ring = "Crepuscular Ring",
+        right_ring = "Medada's Ring",
         --back
     }
 
@@ -252,7 +286,7 @@ function init_gear_sets()
         hands = "Malignance Gloves",
         legs = "Malignance Tights",
         feet = "Malignance Boots",
-        neck = "Ninja Nodowa +2",
+        neck = gear.nin_jse_neck,
         waist = "Yemaya Belt",
         left_ear = "Telos Earring",
         right_ear = "Crep. Earring",
@@ -273,7 +307,7 @@ function init_gear_sets()
         legs = "Malignance Tights",
         feet = "Malignance Boots",
         neck = "Sanctity Necklace",
-        waist = "Flume Belt +1",
+        waist = gear.dt_waist,
         left_ear = "Infused Earring",
         right_ear = "Etiolation Earring",
         left_ring = "Defending Ring",
@@ -288,7 +322,7 @@ function init_gear_sets()
         hands = "Nyame Gauntlets",
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
-        neck = "Ninja Nodowa +2",
+        neck = gear.nin_jse_neck,
         waist = "Windbuffet Belt +1",
         left_ear = "Telos Earring",
         right_ear = "Crep. Earring",
@@ -298,14 +332,14 @@ function init_gear_sets()
     }
 
     sets.defense.PDT = {
-        ammo = "Staunch Tathlum +1",
+        ammo = gear.dt_ammo,
         head = "Nyame Helm",
         body = "Nyame Mail",
         hands = "Nyame Gauntlets",
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Loricate Torque +1",
-        waist = "Flume Belt +1",
+        waist = gear.dt_waist,
         left_ear = "Odnowa Earring +1",
         right_ear = "Etiolation Earring",
         left_ring = "Defending Ring",
@@ -315,6 +349,7 @@ function init_gear_sets()
 
     sets.defense.MDT = sets.defense.PDT
     sets.defense.MEVA = sets.defense.PDT
+
 
     sets.resting = sets.idle
     sets.idle.Weak = sets.defense.PDT
@@ -337,10 +372,10 @@ function init_gear_sets()
         hands = "Malignance Gloves",
         legs = "Mpaca's Hose",
         feet = "Malignance Boots",
-        neck = "Ninja Nodowa +2",
+        neck = gear.nin_jse_neck,
         waist = "Windbuffet Belt +1",
         left_ear = "Telos Earring",
-        right_ear = "Crep. Earring",
+        right_ear = gear.empy_earring,
         left_ring = { name = "Chirich Ring +1", priority = 500 },
         right_ring = { name = "Gere Ring", priority = 250 },
         back = gear.jse_da_back,
@@ -353,16 +388,16 @@ function init_gear_sets()
         hands = "Malignance Gloves",
         legs = "Malignance Tights",
         feet = "Malignance Boots",
-        neck = "Ninja Nodowa +2",
+        neck = gear.nin_jse_neck,
         waist = "Windbuffet Belt +1",
         left_ear = "Telos Earring",
-        right_ear = "Crep. Earring",
+        right_ear = gear.empy_earring,
         left_ring = { name = "Defending Ring", priority = 500 },
         right_ring = { name = "Gere Ring", priority = 250 },
         back = gear.jse_da_back,
     }
 
-    sets.engaged.Proc = set_combine(sets.engaged.DT, { ammo = "Staunch Tathlum +1", })
+    sets.engaged.Proc = set_combine(sets.engaged.DT, { ammo = gear.dt_ammo, })
 
     --------------------------------------
     -- Custom buff sets
@@ -370,27 +405,12 @@ function init_gear_sets()
 
     sets.buff.Migawari = {} --body="Hattori Ningi +1"
     sets.buff.Doom = set_combine(sets.buff.Doom, {})
-    sets.buff.Yonin = {} --legs="Hattori Hakama +1"
-    sets.buff.Innin = {} --head="Hattori Zukin +1"
+    sets.buff.Yonin = {}    --legs="Hattori Hakama +1"
+    sets.buff.Innin = {}    --head="Hattori Zukin +1"
 
     -- Extra Melee sets.  Apply these on top of melee sets.
     sets.Knockback = {}
     sets.TreasureHunter = set_combine(sets.TreasureHunter, {})
-
-end
-
--- Select default macro book on initial load or subjob change.
-function select_default_macro_book()
-    -- Default macro set/book
-    if player.sub_job == 'WAR' then
-        set_macro_page(1, 12)
-    elseif player.sub_job == 'RNG' then
-        set_macro_page(1, 12)
-    elseif player.sub_job == 'RDM' then
-        set_macro_page(1, 12)
-    else
-        set_macro_page(1, 12)
-    end
 end
 
 function extra_user_setup()

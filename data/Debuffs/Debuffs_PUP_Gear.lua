@@ -1,15 +1,15 @@
 function user_job_setup()
-
     state.OffenseMode:options('Normal')
     state.HybridMode:options('DT', 'HybridPET', 'PetTank', 'Normal')
     state.WeaponskillMode:options('Normal')
     state.PhysicalDefenseMode:options('PDT')
     state.IdleMode:options('Normal', 'Refresh')
-    state.Weapons:options('Verethragna', 'Godhands', 'Sakpata', 'Midnights', 'DivinatorII', 'None')
+    state.Weapons:options('Verethragna', 'Godhands', 'Xiucoatl', 'Sakpata', 'Midnights', 'DivinatorII', 'None')
     state.PetWSGear = M(true, 'Pet WS Gear')
+    state.AutoZergMode:reset()
     state.AutoBuffMode:options('auto')
-    state.PetMode = M { ['description'] = 'Pet Mode', 'Tank', 'Melee', 'Ranged', 'Heal', 'Nuke' }
-    state.AutoManeuvers = M { ['description'] = 'Auto Maneuver List', 'Tank', 'Melee', 'Ranged', 'Heal', 'Nuke' }
+    state.PetMode = M { ['description'] = 'Pet Mode', 'Tank', 'TankMEVA', 'Melee', 'Ranged', 'Heal', 'Nuke' }
+    state.AutoManeuvers = M { ['description'] = 'Auto Maneuver List', 'Tank', 'TankMEVA', 'Melee', 'Ranged', 'Heal', 'Nuke' }
     silibs.enable_cancel_outranged_ws()
     silibs.enable_cancel_on_blocking_status()
     silibs.enable_weapon_rearm()
@@ -18,6 +18,14 @@ function user_job_setup()
     silibs.enable_premade_commands()
     silibs.enable_th()
     silibs.enable_ui()
+    silibs.enable_equip_loop()
+    silibs.enable_custom_roll_text()
+    silibs.enable_haste_info()
+    has_obi = true     -- Change if you do or don't have Hachirin-no-Obi
+    has_orpheus = true -- Change if you do or don't have Orpheus's Sash
+    silibs.enable_elemental_belt_handling(has_obi, has_orpheus)
+    silibs.enable_snapshot_auto_equip()
+
 
     PetMode = "Tank"
     AutoManeuvers = "Tank"
@@ -31,15 +39,21 @@ function user_job_setup()
             { Name = 'Light Maneuver', Amount = 2 },
             { Name = 'Water Maneuver', Amount = 0 },
         },
+        TankMEVA = {
+            { Name = 'Earth Maneuver', Amount = 0 },
+            { Name = 'Fire Maneuver', Amount = 1 },
+            { Name = 'Light Maneuver', Amount = 2 },
+            { Name = 'Water Maneuver', Amount = 1 },
+        },
         Melee = {
-            { Name = 'Fire Maneuver', Amount = 0 },
-            { Name = 'Wind Maneuver', Amount = 0 },
+            { Name = 'Fire Maneuver',  Amount = 0 },
+            { Name = 'Wind Maneuver',  Amount = 0 },
             { Name = 'Light Maneuver', Amount = 2 },
             { Name = 'Thunder Maneuver', Amount = 1 },
         },
         Ranged = {
-            { Name = 'Wind Maneuver', Amount = 3 },
-            { Name = 'Fire Maneuver', Amount = 0 },
+            { Name = 'Wind Maneuver',  Amount = 3 },
+            { Name = 'Fire Maneuver',  Amount = 0 },
             { Name = 'Light Maneuver', Amount = 0 },
             { Name = 'Thunder Maneuver', Amount = 0 },
         },
@@ -58,32 +72,41 @@ function user_job_setup()
     }
 
     deactivatehpp = 85
-
     gear.jse_pet_tank_back = { name = "Visucius's Mantle", augments = { 'Pet: Acc.+20 Pet: R.Acc.+20 Pet: Atk.+20 Pet: R.Atk.+20', 'Eva.+20 /Mag. Eva.+20', 'Pet: "Regen"+10', 'Pet: Damage taken -5%', } }
     gear.jse_da_back = { name = "Visucius's Mantle", augments = { 'DEX+20', 'Accuracy+20 Attack+20', '"Dbl.Atk."+10', 'Accuracy+10', 'Phys. dmg. taken-10%', } }
     gear.jse_wsd_back = { name = "Visucius's Mantle", augments = { 'VIT+20', 'Accuracy+20 Attack+20', 'VIT+10', 'Weapon skill damage +10%', 'Phys. dmg. taken-10%', } }
 
+    send_command('bind ^` input /ja Deactivate <me>')
+    send_command('bind @backspace gs c toggle PetMode; gs c toggle AutoManeuvers')
+    send_command('bind !` input /ja Deploy <t>')
+    send_command('bind @` input /ja Retrieve <me>')
+    send_command('bind ^backspace input /ja "Deus Ex Automata" <me>')
+    send_command('bind !backspace input /ja Activate <me>')
+    send_command('bind @f8 gs c toggle AutoPuppetMode')
+    send_command('bind @f7 gs c toggle AutoRepairMode')
+    send_command('lua r autocontrol')
+
     select_default_macro_book()
 end
 
-send_command('bind ^` input /ja Deactivate <me>')
-send_command('bind @backspace gs c toggle PetMode; gs c toggle AutoManeuvers')
-send_command('bind !` input /ja Deploy <t>')
-send_command('bind @` input /ja Retrieve <me>')
-send_command('bind ^backspace input /ja "Deus Ex Automata" <me>')
-send_command('bind !backspace input /ja Activate <me>')
-send_command('bind @f8 gs c toggle AutoPuppetMode')
-send_command('bind @f7 gs c toggle AutoRepairMode')
-send_command('lua r autocontrol')
-
 function init_gear_sets()
+    if item_available("Karagoz Earring +2") then
+        gear.empy_earring = "Karagoz Earring +2"
+    elseif item_available("Karagoz Earring +1") then
+        gear.empy_earring = "Karagoz Earring +1"
+    elseif item_available("Karagoz Earring") then
+        gear.empy_earring = "Karagoz Earring"
+    else
+        gear.empy_earring = "Crep. Earring"
+    end
 
     -- Weapons sets
     sets.weapons.Verethragna = { main = "Verethragna", range = "Neo Animator", }
     sets.weapons.Godhands = { main = "Godhands", range = "Neo Animator", }
+    sets.weapons.Xiucoatl = { main = "Xiucoatl", range = "Neo Animator", }
     sets.weapons.Sakpata = { main = "Sakpata's Fists", range = "Neo Animator", }
     sets.weapons.Midnights = { main = "Midnights", range = "Neo Animator", }
-    sets.weapons.DivinatorII = { main = "Sakpata's Fists", range = "Divinator II", }
+    sets.weapons.DivinatorII = { main = "Xiucoatl", range = "Divinator II", }
 
 
     -- Fast cast sets for spells
@@ -94,11 +117,11 @@ function init_gear_sets()
         legs = "Rawhide Trousers",
         feet = "Regal Pumps +1",
         neck = "Baetyl Pendant",
-        waist = gear.mnk_jse_waist,
+        waist = "Moonbow Belt +1",
         left_ear = "Loquac. Earring",
         right_ear = "Etiolation Earring",
-        left_ring = "Defending Ring",
-        right_ring = "Lebeche Ring",
+        left_ring = gear.weather_ring,
+        right_ring = "Medada's Ring",
         back = "Perimede Cape",
     }
 
@@ -106,11 +129,12 @@ function init_gear_sets()
 
 
     -- Precast sets to enhance JAs
-    sets.precast.JA['Tactical Switch'] = {} --{feet="Cirque Scarpe +2"}
+    sets.precast.JA['Tactical Switch'] = {}              --{feet="Cirque Scarpe +2"}
     sets.precast.JA['Repair'] = { ammo = "Automat. Oil +3" } --feet="Foire Babouches"
     sets.precast.JA['Maintenance'] = { ammo = "Automat. Oil +3" }
 
-    sets.precast.JA.Maneuver = { main = "Midnights", back = gear.jse_pet_tank_back } --neck="Buffoon's Collar",hands="Foire Dastanas",body="Cirque Farsetto +2",
+    sets.precast.JA.Maneuver = { main = "Midnights", body = "Kara. Farsetto +3", neck = "Bfn. Collar +1", back = gear
+    .jse_pet_tank_back }                                                                                                     --,hands="Foire Dastanas",
 
     -- Waltz set (chr and vit)
     sets.precast.Waltz = {}
@@ -126,7 +150,7 @@ function init_gear_sets()
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Fotia Gorget",
-        waist = gear.mnk_jse_waist,
+        waist = "Moonbow Belt +1",
         left_ear = "Ishvara Earring",
         right_ear = "Moonshade Earring",
         left_ring = "Regal Ring",
@@ -168,8 +192,10 @@ function init_gear_sets()
 
     -- Midcast sets for pet actions
     sets.midcast.Pet.Cure = {}
-    sets.midcast.Pet['Enfeebling Magic'] = { neck = "Adad Amulet", ear1 = "Enmerkar Earring", ring1 = "C. Palug Ring", ring2 = "Varar Ring +1", waist = "Incarnation Sash" }
-    sets.midcast.Pet['Elemental Magic'] = { neck = "Adad Amulet", ear1 = "Enmerkar Earring", ring1 = "C. Palug Ring", ring2 = "Varar Ring +1", waist = "Incarnation Sash" }
+    sets.midcast.Pet['Enfeebling Magic'] = { neck = "Adad Amulet", ear1 = "Enmerkar Earring", ring1 = "C. Palug Ring", ring2 =
+    "Varar Ring +1", waist = "Incarnation Sash" }
+    sets.midcast.Pet['Elemental Magic'] = { neck = "Adad Amulet", ear1 = "Enmerkar Earring", ring1 = "C. Palug Ring", ring2 =
+    "Varar Ring +1", waist = "Incarnation Sash" }
 
     -- The following sets are predictive and are equipped before we even know the ability will happen, as a workaround due to
     -- the fact that start of ability packets are too late in the case of Pup abilities, WS, and certain spells.
@@ -192,6 +218,7 @@ function init_gear_sets()
     sets.midcast.Pet.PetWSGear.Melee = set_combine(sets.midcast.Pet.PetWSGear, {})
     sets.midcast.Pet.PetWSGear.Ranged = set_combine(sets.midcast.Pet.PetWSGear, {})
     sets.midcast.Pet.PetWSGear.Tank = set_combine(sets.midcast.Pet.PetWSGear, {})
+    sets.midcast.Pet.PetWSGear.TankMEVA = set_combine(sets.midcast.Pet.PetWSGear, {})
     sets.midcast.Pet.PetWSGear.Heal = set_combine(sets.midcast.Pet.PetWSGear, {})
     sets.midcast.Pet.PetWSGear.Nuke = set_combine(sets.midcast.Pet.PetWSGear, {})
 
@@ -206,7 +233,7 @@ function init_gear_sets()
         legs = "Malignance Tights",
         feet = "Malignance Boots",
         neck = "Sanctity Necklace",
-        waist = gear.mnk_jse_waist,
+        waist = "Moonbow Belt +1",
         left_ear = "Infused Earring",
         right_ear = "Etiolation Earring",
         left_ring = "Defending Ring",
@@ -224,15 +251,15 @@ function init_gear_sets()
 
     -- Set for idle while pet is out (eg: pet regen gear)
     sets.idle.Pet = {
-        head = "Rao Kabuto +1", -- 4
-        body = "Rao Togi +1", -- 4
-        hands = "Rao Kote +1", -- 4
-        legs = "Rao Haidate +1", -- 4
-        feet = "Rao Sune-Ate +1", -- 4
-        neck = "Shepherd's Chain", -- 2
-        waist = "Isa Belt", -- 3
+        head = "Rao Kabuto +1",      -- 4
+        body = "Rao Togi +1",        -- 4
+        hands = "Rao Kote +1",       -- 4
+        legs = "Rao Haidate +1",     -- 4
+        feet = "Rao Sune-Ate +1",    -- 4
+        neck = "Shepherd's Chain",   -- 2
+        waist = "Isa Belt",          -- 3
         left_ear = "Enmerkar Earring", -- 3
-        right_ear = "Rimeice Earring", -- 1
+        right_ear = gear.empy_earring,
         left_ring = "Overbearing Ring",
         right_ring = "C. Palug Ring",
         back = gear.jse_pet_tank_back, -- 5
@@ -241,14 +268,14 @@ function init_gear_sets()
     -- Idle sets to wear while pet is engaged
     sets.idle.Pet.Engaged = {
         head = "Nyame Helm",
-        body = "Nyame Mail",
+        body = "Kara. Farsetto +3",
         hands = "Mpaca's Gloves",
         legs = "Nyame Flanchard",
         feet = "Mpaca's Boots",
         neck = "Shulmanu Collar",
         waist = "Incarnation Sash",
         left_ear = "Enmerkar Earring",
-        right_ear = "Crep. Earring",
+        right_ear = gear.empy_earring,
         left_ring = "Varar Ring +1",
         right_ring = "C. Palug Ring",
         back = gear.jse_pet_tank_back,
@@ -257,15 +284,15 @@ function init_gear_sets()
     -- 34% DT/PDT + Weapon 4% = 38%
     sets.idle.Pet.Engaged.Tank = set_combine(sets.idle.Pet.Engaged,
         {
-            head = "Rao Kabuto +1", -- 4
-            body = "Rao Togi +1", -- 4
-            hands = "Rao Kote +1", -- 4
+            head = "Rao Kabuto +1",  -- 4
+            body = "Rao Togi +1",    -- 4
+            hands = "Rao Kote +1",   -- 4
             legs = "Rao Haidate +1", -- 4
             feet = "Rao Sune-Ate +1", -- 4
             neck = "Shepherd's Chain", -- 2
-            waist = "Isa Belt", -- 3
+            waist = "Isa Belt",      -- 3
             left_ear = "Enmerkar Earring", -- 3
-            right_ear = "Rimeice Earring", -- 1
+            right_ear = gear.empy_earring, -- 1
             left_ring = "Overbearing Ring",
             right_ring = "C. Palug Ring",
             back = gear.jse_pet_tank_back, -- 5
@@ -280,13 +307,14 @@ function init_gear_sets()
         neck = "Adad Amulet",
         waist = "Isa Belt",
         left_ear = "Enmerkar Earring",
-        right_ear = "Crep. Earring",
+        right_ear = gear.empy_earring,
         left_ring = "Varar Ring +1",
         right_ring = "C. Palug Ring",
         back = gear.jse_pet_tank_back,
     }
 
     sets.idle.Pet.Engaged.Tank = set_combine(sets.idle.Pet.Engaged.Tank, {})
+    sets.idle.Pet.Engaged.TankMEVA = set_combine(sets.idle.Pet.Engaged.Tank, {})
     sets.idle.Pet.Engaged.Ranged = set_combine(sets.idle.Pet.Engaged, {})
     sets.idle.Pet.Engaged.Melee = set_combine(sets.idle.Pet.Engaged, {})
     sets.idle.Pet.Engaged.Heal = sets.idle.Pet.Engaged.Magic
@@ -301,7 +329,7 @@ function init_gear_sets()
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Loricate Torque +1",
-        waist = gear.mnk_jse_waist,
+        waist = "Moonbow Belt +1",
         left_ear = "Etiolation Earring",
         right_ear = "Odnowa Earring +1",
         left_ring = "Defending Ring",
@@ -324,9 +352,9 @@ function init_gear_sets()
         legs = "Malignance Tights",
         feet = "Mpaca's Boots",
         neck = "Combatant's Torque",
-        waist = gear.mnk_jse_waist,
+        waist = "Moonbow Belt +1",
         left_ear = "Telos Earring",
-        right_ear = "Cessance Earring",
+        right_ear = gear.empy_earring,
         left_ring = gear.tp_ring,
         right_ring = "Niqmaddu Ring",
         back = gear.jse_da_back,
@@ -339,58 +367,43 @@ function init_gear_sets()
         legs = "Malignance Tights",
         feet = "Malignance Boots",
         neck = "Combatant's Torque",
-        waist = gear.mnk_jse_waist,
+        waist = "Moonbow Belt +1",
         left_ear = "Telos Earring",
-        right_ear = "Cessance Earring",
+        right_ear = gear.empy_earring,
         left_ring = "Defending Ring",
         right_ring = "Niqmaddu Ring",
         back = gear.jse_da_back,
     }
 
     sets.engaged.HybridPET = {
-        head = "Nyame Helm", -- 6
-        body = "Nyame Mail", -- 9
+        head = "Nyame Helm",      -- 6
+        body = "Kara. Farsetto +3", -- 9
         hands = "Mpaca's Gloves", -- 8
         legs = "Nyame Flanchard", -- 7
-        feet = "Mpaca's Boots", -- 6
+        feet = "Mpaca's Boots",   -- 6
         neck = "Shulmanu Collar",
-        waist = gear.mnk_jse_waist, -- 5
+        waist = "Moonbow Belt +1", -- 5
         left_ear = "Telos Earring",
-        right_ear = "Enmerkar Earring",
+        right_ear = gear.empy_earring,
         left_ring = "C. Palug Ring",
         right_ring = "Niqmaddu Ring",
         back = gear.jse_da_back, -- 10
     }
 
     sets.engaged.PetTank = {
-        head = "Rao Kabuto +1", -- 4
-        body = "Rao Togi +1", -- 4
-        hands = "Rao Kote +1", -- 4
-        legs = "Rao Haidate +1", -- 4
-        feet = "Rao Sune-Ate +1", -- 4
-        neck = "Shepherd's Chain", -- 2
-        waist = "Isa Belt", -- 3
+        head = "Rao Kabuto +1",      -- 4
+        body = "Rao Togi +1",        -- 4
+        hands = "Rao Kote +1",       -- 4
+        legs = "Rao Haidate +1",     -- 4
+        feet = "Rao Sune-Ate +1",    -- 4
+        neck = "Shepherd's Chain",   -- 2
+        waist = "Isa Belt",          -- 3
         left_ear = "Enmerkar Earring", -- 3
-        right_ear = "Rimeice Earring", -- 1
+        right_ear = gear.empy_earring, -- 1
         left_ring = "Overbearing Ring",
         right_ring = "C. Palug Ring",
         back = gear.jse_pet_tank_back, -- 5
     }
-
-end
-
--- Select default macro book on initial load or subjob change.
-function select_default_macro_book()
-    -- Default macro set/book
-    if player.sub_job == 'DNC' then
-        set_macro_page(2, 20)
-    elseif player.sub_job == 'NIN' then
-        set_macro_page(2, 20)
-    elseif player.sub_job == 'THF' then
-        set_macro_page(2, 20)
-    else
-        set_macro_page(2, 20)
-    end
 end
 
 function extra_user_setup()

@@ -1,5 +1,4 @@
 function user_job_setup()
-
     state.OffenseMode:options('Normal')
     state.HybridMode:options('DT', 'Normal')
     state.WeaponskillMode:options('Normal')
@@ -11,6 +10,7 @@ function user_job_setup()
     state.ExtraMeleeMode = M { ['description'] = 'Extra Melee Mode', 'None' }
     state.AutoJumpMode = M(false, 'Auto Jump Mode')
     state.MaintainAftermath = M(false, 'Maintain Aftermath')
+    state.AutoZergMode:reset()
     state.MainStep = M { ['description'] = 'Main Step', 'Box Step', 'Quickstep', 'Stutter Step', 'Feather Step' }
     state.AltStep = M { ['description'] = 'Alt Step', 'Quickstep', 'Box Step', 'Stutter Step', 'Feather Step' }
     state.UseAltStep = M(false, 'Use Alt Step')
@@ -26,8 +26,16 @@ function user_job_setup()
     silibs.enable_premade_commands()
     silibs.enable_th()
     silibs.enable_ui()
+    silibs.enable_equip_loop()
+    silibs.enable_custom_roll_text()
+    silibs.enable_haste_info()
+    has_obi = true     -- Change if you do or don't have Hachirin-no-Obi
+    has_orpheus = true -- Change if you do or don't have Orpheus's Sash
+    silibs.enable_elemental_belt_handling(has_obi, has_orpheus)
+    silibs.enable_snapshot_auto_equip()
 
 
+    autows = 'Pyrrhic Kleos'
     autows_list = {
         ['Tizbron'] = 'Expiacion',
         ['Tizalmace'] = 'Expiacion',
@@ -47,8 +55,8 @@ function user_job_setup()
     send_command('bind !` gs c step')
     send_command('bind ^!@` gs c toggle usealtstep')
     send_command('bind @` input /ja "Chocobo Jig II" <me>')
-    send_command('bind ^` input /ja "Saber Dance" <me>')
-    send_command('bind !` input /ja "Fan Dance" <me>')
+    --send_command('bind ^` input /ja "Saber Dance" <me>')
+    --send_command('bind !` input /ja "Fan Dance" <me>')
     send_command('bind ^\\\\ gs c cycle mainstep')
     send_command('bind !\\\\ gs c cycle altstep')
     send_command('bind !backspace input /ja "Reverse Flourish" <me>')
@@ -61,14 +69,29 @@ function user_job_setup()
 end
 
 function init_gear_sets()
-
     sets.TreasureHunter = set_combine(sets.TreasureHunter, {})
 
-    -- Extra Melee sets.  Apply these on top of melee sets.
+    if item_available("Maculele Earring +2") then
+        gear.empy_earring = "Maculele Earring +2"
+    elseif item_available("Maculele Earring +1") then
+        gear.empy_earring = "Maculele Earring +1"
+    else
+        gear.empy_earring = "Telos Earring"
+    end
+
+    if item_available("Maculele Tiara +3") then
+        gear.jse_empy_head = "Maculele Tiara +3"
+    elseif item_available("Maculele Tiara +2") then
+        gear.jse_empy_head = "Maculele Tiara +2"
+    else
+        gear.jse_empy_head = "Maculele Tiara +1"
+    end
+
+
 
     -- Weapons sets
-    sets.weapons.Aeneas = { main = "Aeneas", sub = "Gleti's Knife" }
-    sets.weapons.Terpsichore = { main = "Terpsichore", sub = "Gleti's Knife" }
+    sets.weapons.Aeneas = { main = "Aeneas", sub = "Crepuscular Knife" }
+    sets.weapons.Terpsichore = { main = "Terpsichore", sub = "Crepuscular Knife" }
     sets.weapons.Karambit = { main = "Karambit", sub = empty }
 
     -- Precast Sets
@@ -82,10 +105,10 @@ function init_gear_sets()
     sets.precast.Waltz = {
         ammo = "Yamarang",
         head = { name = "Horos Tiara +3", augments = { 'Enhances "Trance" effect', } }, -- 15
-        body = "Gleti's Cuirass", -- 10
+        body = "Gleti's Cuirass",                                       -- 10
         hands = "Maxixi Bangles +3",
-        legs = "Dashing Subligar", -- 10
-        feet = "Maxixi Toe Shoes +3", -- 15
+        legs = "Dashing Subligar",                                      -- 10
+        feet = "Maxixi Toe Shoes +3",                                   -- 15
         neck = "Etoile Gorget +2",
         waist = "Flume Belt +1",
         left_ear = "Odnowa Earring +1",
@@ -163,18 +186,18 @@ function init_gear_sets()
     sets.precast.Flourish3 = {}
     sets.precast.Flourish3['Striking Flourish'] = {}
     sets.precast.Flourish3['Climactic Flourish'] = {
-        ammo = "C. Palug Stone",
-        head = "Maculele Tiara +1",
+        ammo = "Yamarang",
+        head = gear.jse_empy_head,
         body = "Nyame Mail",
-        hands = "Maxixi Bangles +3",
-        legs = { name = "Horos Tights +3", augments = { 'Enhances "Saber Dance" effect', } },
+        hands = "Nyame Gauntlets",
+        legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Etoile Gorget +2",
         waist = "Fotia Belt",
         left_ear = "Moonshade Earring",
         right_ear = "Odr Earring",
         left_ring = "Regal Ring",
-        right_ring = "Illbrat Ring",
+        right_ring = "Ilabrat Ring",
         back = gear.jse_wsd_back,
     }
 
@@ -184,15 +207,15 @@ function init_gear_sets()
         ammo = "Sapience Orb",
         head = "Nyame Helm",
         body = "Adhemar Jacket +1",
-        hands = { name = "Leyline Gloves", augments = { 'Accuracy+5', '"Mag.Atk.Bns."+7', '"Fast Cast"+1', } },
+        hands = "Leyline Gloves",
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Baetyl Pendant",
         waist = "Flume Belt +1",
         left_ear = "Loquac. Earring",
         right_ear = "Etiolation Earring",
-        left_ring = "Weather. Ring +1",
-        right_ring = "Lebeche Ring",
+        left_ring = gear.weather_ring,
+        right_ring = "Medada's Ring",
         back = gear.jse_stp_back,
     }
 
@@ -202,11 +225,11 @@ function init_gear_sets()
     -- Weaponskill sets
     -- Default set for any weaponskill that isn't any more specifically defined
     sets.precast.WS = {
-        ammo = "C. Palug Stone",
+        ammo = "Oshasha's Treatise",
         head = "Nyame Helm",
         body = "Nyame Mail",
-        hands = "Maxixi Bangles +3",
-        legs = { name = "Horos Tights +3", augments = { 'Enhances "Saber Dance" effect', } },
+        hands = "Nyame Gauntlets",
+        legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Etoile Gorget +2",
         waist = "Fotia Belt",
@@ -219,29 +242,29 @@ function init_gear_sets()
 
     -- Specific weaponskill sets.  Uses the base set if an appropriate WSMod version isn't found.
     sets.precast.WS["Rudra's Storm"] = {
-        ammo = "C. Palug Stone",
+        ammo = "Oshasha's Treatise",
         head = "Nyame Helm",
         body = "Nyame Mail",
-        hands = "Maxixi Bangles +3",
-        legs = { name = "Horos Tights +3", augments = { 'Enhances "Saber Dance" effect', } },
+        hands = "Nyame Gauntlets",
+        legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
         neck = "Etoile Gorget +2",
         waist = "Fotia Belt",
         left_ear = "Moonshade Earring",
         right_ear = "Odr Earring",
         left_ring = "Regal Ring",
-        right_ring = "Illbrat Ring",
+        right_ring = "Ilabrat Ring",
         back = gear.jse_wsd_back,
     }
 
     sets.precast.WS['Evisceration'] = set_combine(sets.precast.WS, {})
     sets.precast.WS['Pyrrhic Kleos'] = {
-        ammo = "Crepuscular Pebble",
-        head = "Gleti's Mask",
-        body = "Gleti's Cuirass",
-        hands = "Gleti's Gauntlets",
-        legs = "Gleti's Breeches",
-        feet = "Gleti's Boots",
+        ammo = "Oshasha's Treatise",
+        head = "Nyame Helm",
+        body = "Nyame Mail",
+        hands = "Nyame Gauntlets",
+        legs = "Nyame Flanchard",
+        feet = "Nyame Sollerets",
         neck = "Etoile Gorget +2",
         waist = "Fotia Belt",
         left_ear = "Sherida Earring",
@@ -269,11 +292,11 @@ function init_gear_sets()
     -- Idle sets
     sets.idle = {
         ammo = "Staunch Tathlum +1", -- 3%
-        head = "Gleti's Mask",
+        head = "Malignance Chapeau",
         body = "Gleti's Cuirass",
         hands = "Gleti's Gauntlets",
-        legs = "Gleti's Breeches",
-        feet = "Gleti's Boots",
+        legs = "Malignance Tights",
+        feet = "Malignance Boots",
         neck = "Sanctity Necklace",
         waist = "Flume Belt +1", -- 4%
         left_ear = "Infused Earring",
@@ -285,10 +308,9 @@ function init_gear_sets()
 
     sets.idle.DT = set_combine(sets.idle, {
         head = "Nyame Helm",
-        body = "Nyame Mail",
-        hands = "Nyame Gauntlets",
         legs = "Nyame Flanchard",
         feet = "Nyame Sollerets",
+        neck = "Loricate Torque +1",
     })
 
     sets.idle.Town = {
@@ -321,7 +343,7 @@ function init_gear_sets()
         right_ear = "Etiolation Earring",
         left_ring = "Defending Ring",
         right_ring = "Gelatinous Ring +1",
-        back = "Moonbeam Cape",
+        back = gear.dt_moon_back,
     }
 
     sets.defense.MDT = sets.defense.PDT
@@ -334,13 +356,13 @@ function init_gear_sets()
         ammo = "Coiste Bodhar",
         head = "Malignance Chapeau",
         body = "Horos Casaque +3",
-        hands = { name = "Adhemar Wrist. +1", augments = { 'DEX+12', 'AGI+12', 'Accuracy+20', } },
+        hands = "Gleti's Gauntlets",
         legs = "Malignance Tights",
         feet = "Horos T. Shoes +3",
         neck = "Etoile Gorget +2",
         waist = "Windbuffet Belt +1",
         left_ear = "Sherida Earring",
-        right_ear = "Telos Earring",
+        right_ear = gear.empy_earring,
         left_ring = "Gere Ring",
         right_ring = "Chirich Ring +1",
         back = gear.jse_stp_back,
@@ -348,15 +370,15 @@ function init_gear_sets()
 
     sets.engaged.DT = {
         ammo = "Coiste Bodhar",
-        head = "Malignance Chapeau",
+        head = "Nyame Helm",
         body = "Malignance Tabard",
         hands = "Malignance Gloves",
         legs = "Malignance Tights",
-        feet = "Malignance Boots",
+        feet = "Nyame Sollerets",
         neck = "Etoile Gorget +2",
         waist = "Windbuffet Belt +1",
         left_ear = "Sherida Earring",
-        right_ear = "Telos Earring",
+        right_ear = gear.empy_earring,
         left_ring = "Defending Ring",
         right_ring = "Chirich Ring +1",
         back = gear.jse_stp_back,
@@ -364,25 +386,8 @@ function init_gear_sets()
 
     -- Buff sets: Gear that needs to be worn to actively enhance a current player buff.
     sets.buff['Saber Dance'] = { legs = "Horos Tights +3" }
-    sets.buff['Climactic Flourish'] = { head = "Maculele Tiara +1" } --ammo="Charis Feather",
+    sets.buff['Climactic Flourish'] = { head = gear.jse_empy_head } --ammo="Charis Feather",
     sets.buff.Doom = set_combine(sets.buff.Doom, {})
-
-end
-
--- Select default macro book on initial load or subjob change.
-function select_default_macro_book()
-    -- Default macro set/book
-    if player.sub_job == 'WAR' then
-        set_macro_page(10, 9)
-    elseif player.sub_job == 'NIN' then
-        set_macro_page(1, 9)
-    elseif player.sub_job == 'SAM' then
-        set_macro_page(9, 9)
-    elseif player.sub_job == 'THF' then
-        set_macro_page(8, 9)
-    else
-        set_macro_page(10, 9)
-    end
 end
 
 function extra_user_setup()

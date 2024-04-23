@@ -7,20 +7,20 @@ conserveshadows = false
 --Display related settings.
 state.DisplayMode = M(true, 'Display Mode') --Set this to false if you don't want to display modes at the bottom of your screen.
 --Uncomment the settings below and change the values to edit the display's look.
---displayx = 3
---displayy = 1062
---displayfont = 'Ubuntu Mono'
---displaysize = 12
---displaybold = true
---displaybg = 0
---displaystroke = 2
---displaytransparancy = 192
---state.DisplayColors = {
--- h='\\cs(255, 0, 0)', -- Red for active booleans and non-default modals
--- w='\\cs(255,255,255)', -- White for labels and default modals
--- n='\\cs(192,192,192)', -- White for labels and default modals
--- s='\\cs(96,96,96)' -- Gray for inactive booleans
---}
+displayx = 3
+displayy = 1062
+displayfont = 'Ubuntu Mono'
+displaysize = 12
+displaybold = true
+displaybg = 0
+displaystroke = 2
+displaytransparancy = 192
+state.DisplayColors = {
+h='\\cs(255, 0, 0)', -- Red for active booleans and non-default modals
+w='\\cs(255,255,255)', -- White for labels and default modals
+n='\\cs(192,192,192)', -- White for labels and default modals
+s='\\cs(96,96,96)' -- Gray for inactive booleans
+}
 
 --Options for automation.
 state.ReEquip = M(true, 'ReEquip Mode') --Set this to false if you don't want to equip your current Weapon set when you aren't wearing any weapons.
@@ -86,15 +86,16 @@ send_command('bind !d input //mc fin') --Alt D
 send_command('bind !s input //mc cc') --Alt S Sleep
 send_command('bind !t input //mc dd') --Alt T DEF Down
 send_command('bind !q sat youcommand Busts LeadenSalute') --Alt Q
-send_command('bind !d sat allcommand  Dia II') --Alt Dlt D
+send_command('bind !y sat allcommand  Dia II') --Alt y
+
 
 NotifyBuffs = S { 'doom', 'petrification' }
 
 bayld_items = { 'Tlalpoloani', 'Macoquetza', 'Camatlatia', 'Icoyoca', 'Tlamini', 'Suijingiri Kanemitsu',
-                'Zoquittihuitz', 'Quauhpilli Helm', 'Chocaliztli Mask', 'Xux Hat', 'Quauhpilli Gloves', 'Xux Trousers',
-                'Chocaliztli Boots', 'Maochinoli', 'Xiutleato', 'Hatxiik', 'Kuakuakait', 'Azukinagamitsu', 'Atetepeyorg',
-                'Kaquljaan', 'Ajjub Bow', 'Baqil Staff', 'Ixtab', 'Tamaxchi', 'Otomi Helm', 'Otomi Gloves', 'Kaabnax Hat',
-                'Kaabnax Trousers', 'Ejekamal Mask', 'Ejekamal Boots', 'Quiahuiz Helm', 'Quiahuiz Trousers', 'Uk\'uxkaj Cap' }
+    'Zoquittihuitz', 'Quauhpilli Helm', 'Chocaliztli Mask', 'Xux Hat', 'Quauhpilli Gloves', 'Xux Trousers',
+    'Chocaliztli Boots', 'Maochinoli', 'Xiutleato', 'Hatxiik', 'Kuakuakait', 'Azukinagamitsu', 'Atetepeyorg',
+    'Kaquljaan', 'Ajjub Bow', 'Baqil Staff', 'Ixtab', 'Tamaxchi', 'Otomi Helm', 'Otomi Gloves', 'Kaabnax Hat',
+    'Kaabnax Trousers', 'Ejekamal Mask', 'Ejekamal Boots', 'Quiahuiz Helm', 'Quiahuiz Trousers', 'Uk\'uxkaj Cap' }
 
 --[[ List of all Bayld Items.
 bayld_items = {'Tlalpoloani','Macoquetza','Camatlatia','Icoyoca','Tlamini','Suijingiri Kanemitsu','Zoquittihuitz',
@@ -105,4 +106,5 @@ bayld_items = {'Tlalpoloani','Macoquetza','Camatlatia','Icoyoca','Tlamini','Suij
 ]]
 
 
-silibs = include('SilverLibs')
+include('SilverLibs')
+include('reorganizer-lib')
